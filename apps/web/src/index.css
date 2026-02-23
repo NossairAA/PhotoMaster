@@ -1,0 +1,137 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  :root {
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+    --space-9: 96px;
+
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+
+    --bg: #f7f9fc;
+    --bg-base: #f5f8fc;
+    --bg-wash-1: rgba(37, 99, 235, 0.1);
+    --bg-wash-2: rgba(14, 116, 144, 0.08);
+    --bg-wash-3: rgba(99, 102, 241, 0.07);
+    --surface: #ffffff;
+    --text-strong: #0f172a;
+    --text: #334155;
+    --text-muted: #475569;
+    --brand: #2563eb;
+    --brand-hover: #1d4ed8;
+    --border: #d9e2ec;
+    --focus: #93c5fd;
+    --success: #047857;
+    --danger: #be123c;
+
+    --shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 16px 40px rgba(15, 23, 42, 0.12);
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply m-0 min-h-screen min-w-[320px];
+    background: var(--bg);
+    color: var(--text-strong);
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: "Sora", "Segoe UI", sans-serif;
+    color: var(--text-strong);
+  }
+
+  p {
+    color: var(--text);
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .bg-frosted-aurora {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--bg-base);
+  }
+
+  .bg-frosted-aurora::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+      radial-gradient(900px 520px at 12% 10%, var(--bg-wash-1), transparent 62%),
+      radial-gradient(760px 420px at 88% 14%, var(--bg-wash-2), transparent 64%),
+      radial-gradient(820px 520px at 52% -8%, var(--bg-wash-3), transparent 66%),
+      linear-gradient(180deg, #f8fbff 0%, #f5f8fc 48%, #f3f7fb 100%);
+  }
+
+  .animate-bounce-slow {
+    animation: bounce-slow 7s infinite ease-in-out;
+  }
+}
+
+@keyframes bounce-slow {
+  0%,
+  100% {
+    transform: translateY(-3%);
+  }
+  50% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .bg-frosted-aurora::before {
+    background:
+      radial-gradient(620px 380px at 12% 8%, var(--bg-wash-1), transparent 64%),
+      radial-gradient(560px 340px at 88% 12%, var(--bg-wash-2), transparent 66%),
+      radial-gradient(600px 380px at 50% -16%, var(--bg-wash-3), transparent 68%),
+      linear-gradient(180deg, #f8fbff 0%, #f5f8fc 48%, #f3f7fb 100%);
+  }
+
+}

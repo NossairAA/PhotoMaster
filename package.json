@@ -1,0 +1,22 @@
+{
+  "name": "photomaster",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Photo metadata override web app monorepo",
+  "scripts": {
+    "dev:web": "npm run dev --prefix apps/web",
+    "dev:api": "npm run dev --prefix apps/api",
+    "build:web": "npm run build --prefix apps/web",
+    "build:api": "npm run build --prefix apps/api",
+    "test:web": "npm run test --prefix apps/web",
+    "test:api": "npm run test --prefix apps/api",
+    "test:e2e": "npm run test:e2e:r2 --prefix apps/api && npm run test:e2e:r2:proxy --prefix apps/api",
+    "test:all": "node scripts/test-all.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

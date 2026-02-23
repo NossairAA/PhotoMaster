@@ -1,0 +1,50 @@
+node_modules/
+apps/*/node_modules/
+apps/*/dist/
+apps/api/tests/e2e-result-*.zip
+apps/api/serviceAccountKey.json
+*.log
+.env
+apps/*/.env
+
+# Secrets and local environment files
+**/.env
+**/.env.*
+!**/.env.example
+**/*serviceAccount*.json
+**/*credentials*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local runtime artifacts
+apps/api/tmp/
+coverage/
+
+# OS/Editor files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Credentials and secrets
+**/*serviceAccount*.json
+**/*credentials*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local runtime and tooling files
+apps/api/tmp/
+coverage/
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
