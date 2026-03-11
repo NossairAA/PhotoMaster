@@ -90,9 +90,9 @@ Public web app to read and override photo metadata safely.
 
 Notes:
 
-- E2E requires `apps/api/.env` to contain valid R2 credentials.
-- API auth is enforced on `/api/*`; for local automated tests, `AUTH_TEST_BYPASS_TOKEN` is used by the test runner.
-- Firebase Admin can be configured either with env vars (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`) or with `FIREBASE_SERVICE_ACCOUNT_PATH`.
+- E2E requires `apps/api/.env` to contain valid storage credentials.
+- API auth is enforced on `/api/*`; local automated tests use environment-based bypass configuration.
+- Firebase Admin can be configured through environment variables or a local service account path.
 - E2E writes a temporary zip under `apps/api/tests/` and the script reports its path.
 
 ## Dokploy deployment
@@ -111,33 +111,18 @@ Notes:
 - Port: `4000` internally, or any Dokploy-assigned `PORT`
 - Start command comes from `apps/api/nixpacks.toml`
 
-Required env vars:
+Runtime configuration:
 
-- `PORT`
-- `WEB_ORIGIN`
-- `WEB_ORIGINS`
-- `R2_ACCOUNT_ID`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
-
-Optional now, required later if you deploy the queue and worker flow:
-
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-- `QSTASH_TOKEN`
-- `WORKER_URL`
-- `WORKER_SHARED_SECRET`
+- Add all required backend environment variables in Dokploy using `apps/api/.env.example` as the source of truth.
+- Configure allowed frontend origins for local and production domains.
+- Add queue and worker variables only when that processing path is deployed.
 
 Recommended values:
 
 - `PORT=4000`
-- `WEB_ORIGIN=https://metadatamaster.xyz`
-- `WEB_ORIGINS=http://localhost:5173,https://metadatamaster.xyz,https://www.metadatamaster.xyz`
-- `FIREBASE_PRIVATE_KEY` should be stored with `\n` escapes if Dokploy keeps it on one line.
+- Set the production frontend origin to your live site domain.
+- If multiple frontend domains are allowed, provide them as a comma-separated list.
+- Store multiline private keys with `\n` escapes if Dokploy keeps them on one line.
 
 ### Dokploy web app
 
@@ -148,29 +133,22 @@ Recommended values:
 - Start command comes from `apps/web/nixpacks.toml`
 - The production server is `apps/web/server.mjs`
 
-Required env vars:
+Runtime configuration:
 
-- `PORT`
-- `VITE_API_URL`
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_MEASUREMENT_ID`
+- Add all required frontend environment variables in Dokploy using `apps/web/.env.example` as the source of truth.
+- Point the frontend API base URL at the public backend domain before building.
 
 Recommended values:
 
 - `PORT=3000`
-- `VITE_API_URL=https://your-api-domain.example.com`
+- Set the frontend API base URL to your public API domain.
 
 ### Deploy order
 
 1. Deploy `apps/api` first.
-2. Copy the public API URL into the web app's `VITE_API_URL`.
+2. Copy the public API URL into the web app environment.
 3. Deploy `apps/web`.
-4. Update the API app's `WEB_ORIGIN` to match the final web URL if needed.
+4. Update backend allowed origins to match the final web URL if needed.
 
 Notes:
 

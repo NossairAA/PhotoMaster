@@ -13,20 +13,8 @@ Frontend for PhotoMaster, built with React and Vite.
 
 Create `apps/web/.env` from `apps/web/.env.example` for local development.
 
-Required client variables:
-
-- `VITE_API_URL`
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_MEASUREMENT_ID`
-
-Optional:
-
-- `VITE_AUTH_BEARER_TOKEN` for local testing paths that need a static bearer token.
+- Use `apps/web/.env.example` as the source of truth for the required client variables.
+- Keep secrets and deployment-specific values out of markdown docs and store them only in local `.env` files or Dokploy variables.
 
 ## Dokploy deployment
 
@@ -40,9 +28,9 @@ Optional:
 Suggested Dokploy env values:
 
 - `PORT=3000`
-- `VITE_API_URL=https://your-api-domain.example.com`
+- Set the API base URL to your public backend domain.
 
 ## Notes
 
 - `VITE_*` values are compiled into the frontend bundle at build time.
-- Any change to `VITE_API_URL` or Firebase client vars requires a rebuild and redeploy.
+- Any environment change for the frontend requires a rebuild and redeploy.
