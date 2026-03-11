@@ -27,3 +27,4 @@ Use this checklist when shipping feature work.
 - [ ] Verify `.dockerignore` or equivalent build-context exclusions are in place.
 - [ ] Write clear commit message(s).
 - [ ] Push and verify remote branch state.
+- [ ] Confirm the deployment pipeline starts and completes successfully.
