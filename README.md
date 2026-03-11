@@ -115,6 +115,7 @@ Required env vars:
 
 - `PORT`
 - `WEB_ORIGIN`
+- `WEB_ORIGINS`
 - `R2_ACCOUNT_ID`
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
@@ -134,7 +135,8 @@ Optional now, required later if you deploy the queue and worker flow:
 Recommended values:
 
 - `PORT=4000`
-- `WEB_ORIGIN=https://your-web-domain.example.com`
+- `WEB_ORIGIN=https://metadatamaster.xyz`
+- `WEB_ORIGINS=http://localhost:5173,https://metadatamaster.xyz,https://www.metadatamaster.xyz`
 - `FIREBASE_PRIVATE_KEY` should be stored with `\n` escapes if Dokploy keeps it on one line.
 
 ### Dokploy web app

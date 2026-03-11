@@ -41,11 +41,21 @@ if (existsSync(explicitEnvPath)) {
 
 const app = Fastify({ logger: true });
 const port = Number(process.env.PORT ?? 4000);
-const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:5173";
+const fallbackWebOrigins = ["http://localhost:5173"];
+const allowedWebOrigins = Array.from(
+  new Set(
+    [process.env.WEB_ORIGINS, process.env.WEB_ORIGIN]
+      .flatMap((value) => value?.split(",") ?? [])
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ),
+);
 const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
 const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID ?? "";
 const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
 const r2Bucket = process.env.R2_BUCKET ?? "";
+
+const corsAllowedOrigins = allowedWebOrigins.length > 0 ? allowedWebOrigins : fallbackWebOrigins;
 
 const hasR2Config = Boolean(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2Bucket);
 
@@ -465,7 +475,14 @@ function buildJobReport(job: JobRecord) {
 }
 
 await app.register(cors, {
-  origin: webOrigin,
+  origin(origin, callback) {
+    if (!origin || corsAllowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS.`), false);
+  },
 });
 
 app.addHook("preHandler", async (request, reply) => {
