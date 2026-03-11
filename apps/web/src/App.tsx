@@ -596,7 +596,7 @@ function App() {
     setSelectedCameraId(device?.cameras[0]?.id ?? "");
   }
 
-  async function uploadFiles() {
+  async function uploadFiles(files: File[] = selectedFiles) {
     const token = await resolveApiToken();
     if (!token) {
       setStatusMessage("Sign in first to upload files.");
@@ -604,12 +604,12 @@ function App() {
       return;
     }
 
-    if (selectedFiles.length === 0) {
+    if (files.length === 0) {
       setStatusMessage("Pick at least one image file first.");
       return;
     }
 
-    const normalized = selectedFiles.map((file) => ({
+    const normalized = files.map((file) => ({
       file,
       format: getSupportedFormat(file.name),
     }));
@@ -703,7 +703,7 @@ function App() {
       return;
     }
 
-    setStatusMessage("Files selected. Upload files before applying metadata.");
+    void uploadFiles(files);
   }
 
   async function fillCoordinates() {
@@ -1216,12 +1216,12 @@ function App() {
                   className="hidden"
                 />
 
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
                   <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                     <p className="text-sm font-semibold text-slate-700">Preview</p>
                     <span className="text-xs text-slate-500">{selectedCountLabel}</span>
                   </div>
-                  <div className="h-[320px] bg-slate-100 lg:h-[388px]">
+                  <div className="min-h-[360px] flex-1 bg-slate-100 lg:min-h-[420px]">
                     {previewUrl ? (
                       <img src={previewUrl} alt="Selected upload preview" className="h-full w-full object-cover" />
                     ) : (
