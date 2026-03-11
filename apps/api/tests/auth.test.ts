@@ -26,18 +26,18 @@ describe("auth helpers", () => {
   });
 
   it("resolves service account path from repository root", () => {
-    const resolved = resolveServiceAccountPath("serviceAccountKey.json", "C:/repo", (candidate) => {
-      return normalizePath(candidate) === "C:/repo/apps/api/serviceAccountKey.json";
+    const resolved = resolveServiceAccountPath("serviceAccountKey.json", "/repo", (candidate) => {
+      return normalizePath(candidate) === "/repo/apps/api/serviceAccountKey.json";
     });
 
-    expect(normalizePath(resolved)).toBe("C:/repo/apps/api/serviceAccountKey.json");
+    expect(normalizePath(resolved)).toBe("/repo/apps/api/serviceAccountKey.json");
   });
 
   it("resolves service account path from api cwd", () => {
-    const resolved = resolveServiceAccountPath("apps/api/serviceAccountKey.json", "C:/repo/apps/api", (candidate) => {
-      return normalizePath(candidate) === "C:/repo/apps/api/serviceAccountKey.json";
+    const resolved = resolveServiceAccountPath("apps/api/serviceAccountKey.json", "/repo/apps/api", (candidate) => {
+      return normalizePath(candidate) === "/repo/apps/api/serviceAccountKey.json";
     });
 
-    expect(normalizePath(resolved)).toBe("C:/repo/apps/api/serviceAccountKey.json");
+    expect(normalizePath(resolved)).toBe("/repo/apps/api/serviceAccountKey.json");
   });
 });

@@ -27,6 +27,7 @@ coverage/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.vercel/
 
 # Environment files
 **/.env
