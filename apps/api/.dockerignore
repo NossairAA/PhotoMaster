@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+*.log
+tmp
+tests/e2e-result-*.zip
+serviceAccountKey.json
+.vercel

@@ -95,6 +95,88 @@ Notes:
 - Firebase Admin can be configured either with env vars (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`) or with `FIREBASE_SERVICE_ACCOUNT_PATH`.
 - E2E writes a temporary zip under `apps/api/tests/` and the script reports its path.
 
+## Dokploy deployment
+
+- Create two Dokploy apps from this repo, not one combined app.
+- Set the API app root directory to `apps/api`.
+- Set the web app root directory to `apps/web`.
+- Both apps now include a `nixpacks.toml` file so Dokploy can install, build, and start them with Nixpacks.
+- Each app also includes a local `.dockerignore` so Dokploy sends a smaller build context.
+
+### Dokploy API app
+
+- App name suggestion: `photomaster-api`
+- Root directory: `apps/api`
+- Build type: `Nixpacks`
+- Port: `4000` internally, or any Dokploy-assigned `PORT`
+- Start command comes from `apps/api/nixpacks.toml`
+
+Required env vars:
+
+- `PORT`
+- `WEB_ORIGIN`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
+
+Optional now, required later if you deploy the queue and worker flow:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `QSTASH_TOKEN`
+- `WORKER_URL`
+- `WORKER_SHARED_SECRET`
+
+Recommended values:
+
+- `PORT=4000`
+- `WEB_ORIGIN=https://your-web-domain.example.com`
+- `FIREBASE_PRIVATE_KEY` should be stored with `\n` escapes if Dokploy keeps it on one line.
+
+### Dokploy web app
+
+- App name suggestion: `photomaster-web`
+- Root directory: `apps/web`
+- Build type: `Nixpacks`
+- Port: `3000` internally, or any Dokploy-assigned `PORT`
+- Start command comes from `apps/web/nixpacks.toml`
+- The production server is `apps/web/server.mjs`
+
+Required env vars:
+
+- `PORT`
+- `VITE_API_URL`
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID`
+
+Recommended values:
+
+- `PORT=3000`
+- `VITE_API_URL=https://your-api-domain.example.com`
+
+### Deploy order
+
+1. Deploy `apps/api` first.
+2. Copy the public API URL into the web app's `VITE_API_URL`.
+3. Deploy `apps/web`.
+4. Update the API app's `WEB_ORIGIN` to match the final web URL if needed.
+
+Notes:
+
+- Store all secrets in Dokploy env vars or secrets, not in committed `.env` files.
+- Do not deploy `apps/api/serviceAccountKey.json`; prefer Firebase admin env vars.
+- The web app is served by `apps/web/server.mjs`, which serves `dist` and falls back to `index.html` for SPA routes.
+- The worker is not part of this Dokploy setup yet; it still needs its processing pipeline completed before deployment.
+
 ## Roadmap
 
 - MVP: upload, preview, override, download edited copies
