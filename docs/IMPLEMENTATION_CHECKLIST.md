@@ -2,6 +2,8 @@
 
 Use this checklist when shipping feature work.
 
+Keep deployment settings aligned with the app you expect to rebuild.
+
 ## Planning
 
 - [ ] Define scope and acceptance criteria.
