@@ -1,10 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PhotoMaster favicon">
-  <rect width="64" height="64" rx="14" fill="#2563eb" />
-  <ellipse cx="32" cy="18" rx="16" ry="7" fill="#ffffff" />
-  <path fill="#ffffff" d="M16 18v10c0 3.9 7.2 7 16 7s16-3.1 16-7V18c0 3.9-7.2 7-16 7s-16-3.1-16-7Z" />
-  <ellipse cx="32" cy="28" rx="16" ry="7" fill="#ffffff" />
-  <path fill="#ffffff" d="M16 28v10c0 3.9 7.2 7 16 7s16-3.1 16-7V28c0 3.9-7.2 7-16 7s-16-3.1-16-7Z" />
-  <ellipse cx="32" cy="38" rx="16" ry="7" fill="#ffffff" />
-  <path fill="#ffffff" d="M16 38v8c0 3.9 7.2 7 16 7s16-3.1 16-7v-8c0 3.9-7.2 7-16 7s-16-3.1-16-7Z" />
-  <ellipse cx="32" cy="46" rx="16" ry="7" fill="#ffffff" />
+  <rect width="64" height="64" rx="16" fill="#2563eb" />
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5">
+    <ellipse cx="32" cy="17" rx="15" ry="6" />
+    <path d="M17 17v10c0 3.3 6.7 6 15 6s15-2.7 15-6V17" />
+    <path d="M17 27v10c0 3.3 6.7 6 15 6s15-2.7 15-6V27" />
+    <path d="M17 37v10c0 3.3 6.7 6 15 6s15-2.7 15-6V37" />
+  </g>
 </svg>
