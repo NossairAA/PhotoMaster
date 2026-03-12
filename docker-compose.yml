@@ -1,0 +1,18 @@
+services:
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    restart: unless-stopped
+    environment:
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/crowdsec/config:/etc/crowdsec
+      - /opt/crowdsec/data:/var/lib/crowdsec/data
+      - /opt/crowdsec/acquis:/etc/crowdsec/acquis.d
+      - /var/log:/var/log:ro
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
