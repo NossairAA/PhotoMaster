@@ -91,7 +91,7 @@ Public web app to read and override photo metadata safely.
 Notes:
 
 - E2E requires `apps/api/.env` to contain valid storage credentials.
-- API auth is enforced on `/api/*`; local automated tests use environment-based bypass configuration.
+- API auth is enforced on `/api/*`; automated tests can use a test-only bypass token when running under the test environment.
 - Firebase Admin can be configured through environment variables or a local service account path.
 - E2E writes a temporary zip under `apps/api/tests/` and the script reports its path.
 
@@ -154,6 +154,7 @@ Notes:
 
 - Store all secrets in Dokploy env vars or secrets, not in committed `.env` files.
 - Do not deploy `apps/api/serviceAccountKey.json`; prefer Firebase admin env vars.
+- Do not set `AUTH_TEST_BYPASS_TOKEN` or `VITE_AUTH_BEARER_TOKEN` in production.
 - The web app is served by `apps/web/server.mjs`, which serves `dist` and falls back to `index.html` for SPA routes.
 - The worker is not part of this Dokploy setup yet; it still needs its processing pipeline completed before deployment.
 
