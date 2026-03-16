@@ -168,12 +168,16 @@ function App() {
   const [mapPinnedPoint, setMapPinnedPoint] = useState<[number, number] | null>(null);
 
   useEffect(() => {
-    if (jobExpiresAt === null) return;
+    if (jobExpiresAt === null || jobId === null) return;
     const tick = () => {
       const left = Math.max(0, Math.round((jobExpiresAt - Date.now()) / 1000));
       if (left === 0) {
         setDownloadSecondsLeft(null);
         setDownloadExpired(true);
+        void fetch(`${API_URL}/api/jobs/${jobId}`, {
+          method: "DELETE",
+          headers: withAuthHeaders(authToken),
+        });
       } else {
         setDownloadSecondsLeft(left);
       }
@@ -181,7 +185,7 @@ function App() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [jobExpiresAt]);
+  }, [jobExpiresAt, jobId, authToken]);
 
   useEffect(() => {
     const unsubscribe = observeAuthState((user) => {
