@@ -30,7 +30,7 @@ import {
   type UploadCompleteInput,
   type UploadInitInput,
 } from "./schemas.js";
-import { verifyRequestAuth } from "./auth.js";
+import { type AuthUser, verifyRequestAuth } from "./auth.js";
 
 const explicitEnvPath = path.resolve(process.cwd(), "apps", "api", ".env");
 if (existsSync(explicitEnvPath)) {
@@ -85,6 +85,7 @@ type JobFile = {
 
 type JobRecord = {
   id: string;
+  uid: string;
   createdAt: string;
   expiresAt: string;
   status: "queued" | "processing" | "completed";
@@ -99,6 +100,7 @@ type JobRecord = {
 
 type UploadedFileRecord = {
   id: string;
+  uid: string;
   name: string;
   size: number;
   type: string;
@@ -129,6 +131,16 @@ function nowIso() {
 
 function expiresIso() {
   return new Date(Date.now() + retentionMs).toISOString();
+}
+
+function getRequestAuthUser(request: unknown) {
+  const authUser = (request as { authUser?: AuthUser }).authUser;
+
+  if (!authUser) {
+    throw new Error("Authenticated user was not attached to request.");
+  }
+
+  return authUser;
 }
 
 async function deleteUploadedFile(fileId: string) {
@@ -493,6 +505,8 @@ app.addHook("preHandler", async (request, reply) => {
   if (!authResult.ok) {
     return reply.status(401).send({ error: authResult.error });
   }
+
+  (request as typeof request & { authUser?: AuthUser }).authUser = authResult.user;
 });
 
 await app.register(multipart, {
@@ -520,6 +534,8 @@ app.get("/api/config", async () => ({
 }));
 
 app.post("/api/uploads/init", async (request, reply) => {
+  const authUser = getRequestAuthUser(request);
+
   if (!hasR2Config) {
     return reply.status(500).send({
       error: "R2 is not configured on the server.",
@@ -572,6 +588,7 @@ app.post("/api/uploads/init", async (request, reply) => {
 
     const record: UploadedFileRecord = {
       id,
+      uid: authUser.uid,
       name: file.name,
       size: file.size,
       type: file.type,
@@ -599,6 +616,7 @@ app.post("/api/uploads/init", async (request, reply) => {
 });
 
 app.post("/api/uploads/complete", async (request, reply) => {
+  const authUser = getRequestAuthUser(request);
   const parsed = uploadCompleteSchema.safeParse(request.body);
   if (!parsed.success) {
     return reply.status(400).send({
@@ -615,6 +633,9 @@ app.post("/api/uploads/complete", async (request, reply) => {
     if (!record) {
       missing.push(fileId);
       continue;
+    }
+    if (record.uid !== authUser.uid) {
+      return reply.status(403).send({ error: `Upload does not belong to the authenticated user: ${fileId}` });
     }
 
     try {
@@ -638,12 +659,13 @@ app.post("/api/uploads/complete", async (request, reply) => {
 });
 
 app.post("/api/uploads/proxy", async (request, reply) => {
+  const authUser = getRequestAuthUser(request);
   if (!hasR2Config) {
     return reply.status(500).send({ error: "R2 is not configured on the server." });
   }
 
   let fileId = "";
-  let uploadPart: null | { mimetype: string; file: Readable } = null;
+  let uploadPart: null | { mimetype: string; body: Buffer } = null;
 
   for await (const part of request.parts()) {
     if (part.type === "field" && part.fieldname === "fileId") {
@@ -652,9 +674,13 @@ app.post("/api/uploads/proxy", async (request, reply) => {
     }
 
     if (part.type === "file" && part.fieldname === "file") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of part.file) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
       uploadPart = {
         mimetype: part.mimetype || "application/octet-stream",
-        file: part.file as Readable,
+        body: Buffer.concat(chunks),
       };
     }
   }
@@ -667,13 +693,12 @@ app.post("/api/uploads/proxy", async (request, reply) => {
   if (!record) {
     return reply.status(404).send({ error: "Unknown fileId for upload." });
   }
+  if (record.uid !== authUser.uid) {
+    return reply.status(403).send({ error: "Upload does not belong to the authenticated user." });
+  }
 
   try {
-    const chunks: Buffer[] = [];
-    for await (const chunk of uploadPart.file) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    const body = Buffer.concat(chunks);
+    const body = uploadPart.body;
 
     const { r2Client: client, r2Bucket: bucket } = assertR2Configured();
     await client.send(
@@ -697,6 +722,7 @@ app.post("/api/uploads/proxy", async (request, reply) => {
 });
 
 app.post("/api/jobs", async (request, reply) => {
+  const authUser = getRequestAuthUser(request);
   const parsed = createJobSchema.safeParse(request.body);
 
   if (!parsed.success) {
@@ -735,6 +761,11 @@ app.post("/api/jobs", async (request, reply) => {
     return Boolean(record?.jobId);
   });
 
+  const unauthorizedFileIds = input.fileIds.filter((id) => {
+    const record = uploadStore.get(id);
+    return Boolean(record && record.uid !== authUser.uid);
+  });
+
   const notUploadedFileIds = input.fileIds.filter((id) => {
     const record = uploadStore.get(id);
     return !record?.uploaded;
@@ -744,6 +775,13 @@ app.post("/api/jobs", async (request, reply) => {
     return reply.status(400).send({
       error: "Some uploaded files are already attached to another job.",
       claimedFileIds,
+    });
+  }
+
+  if (unauthorizedFileIds.length > 0) {
+    return reply.status(403).send({
+      error: "Some uploaded files do not belong to the authenticated user.",
+      unauthorizedFileIds,
     });
   }
 
@@ -776,6 +814,7 @@ app.post("/api/jobs", async (request, reply) => {
 
   const record: JobRecord = {
     id,
+    uid: authUser.uid,
     createdAt: now,
     expiresAt: expiresIso(),
     status: "queued",
@@ -806,11 +845,15 @@ app.post("/api/jobs", async (request, reply) => {
 });
 
 app.get("/api/jobs/:id", async (request, reply) => {
+  const authUser = getRequestAuthUser(request);
   const { id } = request.params as { id: string };
   const job = jobStore.get(id);
 
   if (!job) {
     return reply.status(404).send({ error: "Job not found" });
+  }
+  if (job.uid !== authUser.uid) {
+    return reply.status(403).send({ error: "Job does not belong to the authenticated user." });
   }
 
   const doneCount = job.files.filter((file) => file.status === "completed" || file.status === "failed").length;
@@ -824,11 +867,15 @@ app.get("/api/jobs/:id", async (request, reply) => {
 });
 
 app.get("/api/jobs/:id/download", async (request, reply) => {
+  const authUser = getRequestAuthUser(request);
   const { id } = request.params as { id: string };
   const job = jobStore.get(id);
 
   if (!job) {
     return reply.status(404).send({ error: "Job not found" });
+  }
+  if (job.uid !== authUser.uid) {
+    return reply.status(403).send({ error: "Job does not belong to the authenticated user." });
   }
 
   if (job.status !== "completed") {
@@ -875,11 +922,15 @@ app.get("/api/jobs/:id/download", async (request, reply) => {
 });
 
 app.delete("/api/jobs/:id", async (request, reply) => {
+  const authUser = getRequestAuthUser(request);
   const { id } = request.params as { id: string };
   const job = jobStore.get(id);
 
   if (!job) {
     return reply.status(204).send();
+  }
+  if (job.uid !== authUser.uid) {
+    return reply.status(403).send({ error: "Job does not belong to the authenticated user." });
   }
 
   await purgeJob(id);
