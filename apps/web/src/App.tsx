@@ -899,6 +899,11 @@ function App() {
       return;
     }
 
+    if (jobCompletedAt !== null && downloadSecondsLeft === null) {
+      setErrorPopup("This job has expired. Please re-upload your files and try again.");
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/jobs/${jobId}/download`, {
         headers: withAuthHeaders(token),
@@ -919,7 +924,12 @@ function App() {
       URL.revokeObjectURL(url);
       setStatusMessage("Download complete. Job artifacts are now cleaned on server.");
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Download failed.");
+      const msg = error instanceof Error ? error.message : "Download failed.";
+      if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("expired")) {
+        setErrorPopup("This job has expired. Please re-upload your files and try again.");
+      } else {
+        setStatusMessage(msg);
+      }
     }
   }
 
