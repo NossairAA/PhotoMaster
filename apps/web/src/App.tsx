@@ -174,6 +174,10 @@ function App() {
       if (left === 0) {
         setDownloadSecondsLeft(null);
         setDownloadExpired(true);
+        setSelectedFiles([]);
+        setUploadedFileIds([]);
+        setUploadStatus("idle");
+        if (hiddenFileInputRef.current) hiddenFileInputRef.current.value = "";
         void fetch(`${API_URL}/api/jobs/${jobId}`, {
           method: "DELETE",
           headers: withAuthHeaders(authToken),
@@ -704,13 +708,23 @@ function App() {
     }
   }
 
-  function handleUploadButtonClick() {
-    if (selectedFiles.length === 0) {
-      hiddenFileInputRef.current?.click();
-      return;
-    }
+  function resetJobState() {
+    setSelectedFiles([]);
+    setUploadedFileIds([]);
+    setUploadStatus("idle");
+    setJobId(null);
+    setJobProgress(0);
+    setJobExpiresAt(null);
+    setDownloadSecondsLeft(null);
+    setDownloadExpired(false);
+    setStatusMessage("Choose files and prepare metadata fields.");
+    setMapPinnedPoint(null);
+    if (hiddenFileInputRef.current) hiddenFileInputRef.current.value = "";
+  }
 
-    void uploadFiles();
+  function handleUploadButtonClick() {
+    if (hiddenFileInputRef.current) hiddenFileInputRef.current.value = "";
+    hiddenFileInputRef.current?.click();
   }
 
   function handleFileSelection(files: File[]) {
@@ -1268,7 +1282,19 @@ function App() {
                 <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
                   <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                     <p className="text-sm font-semibold text-slate-700">Preview</p>
-                    <span className="text-xs text-slate-500">{selectedCountLabel}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500">{selectedCountLabel}</span>
+                      {selectedFiles.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleFileSelection([])}
+                          className="text-xs text-slate-400 hover:text-red-500"
+                          aria-label="Remove selected file"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="min-h-[360px] flex-1 bg-slate-100 lg:min-h-[420px]">
                     {previewUrl ? (
@@ -1521,15 +1547,26 @@ function App() {
               <p className="text-sm text-slate-600">{statusMessage}</p>
 
               <div className="mt-4 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={downloadResult}
-                  disabled={!jobId || isSubmitting || jobProgress < 100 || !authToken || downloadExpired}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Download Result ZIP
-                </button>
+                {downloadExpired ? (
+                  <button
+                    type="button"
+                    onClick={resetJobState}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-500"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Expired — run again
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={downloadResult}
+                    disabled={!jobId || isSubmitting || jobProgress < 100 || !authToken}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Download Result ZIP
+                  </button>
+                )}
                 {downloadSecondsLeft !== null && (
                   <span className="text-xs text-slate-400">
                     Available for {Math.floor(downloadSecondsLeft / 60)}:{String(downloadSecondsLeft % 60).padStart(2, "0")}
