@@ -148,8 +148,9 @@ function App() {
   const [jobProgress, setJobProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
   const [errorPopup, setErrorPopup] = useState<string | null>(null);
-  const [jobCompletedAt, setJobCompletedAt] = useState<number | null>(null);
+  const [jobExpiresAt, setJobExpiresAt] = useState<number | null>(null);
   const [downloadSecondsLeft, setDownloadSecondsLeft] = useState<number | null>(null);
+  const [downloadExpired, setDownloadExpired] = useState(false);
 
   const [dateMode, setDateMode] = useState<DateMode>("keep-original");
   const [customDateTime, setCustomDateTime] = useState("");
@@ -167,17 +168,20 @@ function App() {
   const [mapPinnedPoint, setMapPinnedPoint] = useState<[number, number] | null>(null);
 
   useEffect(() => {
-    if (jobCompletedAt === null) return;
-    const RETENTION_MS = 2 * 60 * 1000;
+    if (jobExpiresAt === null) return;
     const tick = () => {
-      const left = Math.max(0, Math.round((jobCompletedAt + RETENTION_MS - Date.now()) / 1000));
-      setDownloadSecondsLeft(left);
-      if (left === 0) setDownloadSecondsLeft(null);
+      const left = Math.max(0, Math.round((jobExpiresAt - Date.now()) / 1000));
+      if (left === 0) {
+        setDownloadSecondsLeft(null);
+        setDownloadExpired(true);
+      } else {
+        setDownloadSecondsLeft(left);
+      }
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [jobCompletedAt]);
+  }, [jobExpiresAt]);
 
   useEffect(() => {
     const unsubscribe = observeAuthState((user) => {
@@ -836,6 +840,9 @@ function App() {
     setIsSubmitting(true);
     setStatusMessage("Job queued. Processing started...");
     setJobProgress(0);
+    setJobExpiresAt(null);
+    setDownloadExpired(false);
+    setDownloadSecondsLeft(null);
 
     try {
       const createRes = await fetch(`${API_URL}/api/jobs`, {
@@ -869,15 +876,22 @@ function App() {
           status: "queued" | "processing" | "completed";
           progress: number;
           message: string;
+          expiresAt?: string;
         };
 
         setJobProgress(statusBody.progress);
         setStatusMessage(statusBody.message);
-        complete = statusBody.status === "completed";
+        if (statusBody.status === "completed") {
+          complete = true;
+          const expiry = statusBody.expiresAt
+            ? new Date(statusBody.expiresAt).getTime()
+            : Date.now() + 2 * 60 * 1000;
+          setJobExpiresAt(expiry);
+          setDownloadExpired(false);
+        }
       }
 
       setStatusMessage("Processing complete. Download the ZIP result below.");
-      setJobCompletedAt(Date.now());
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Job failed.";
       if (msg.toLowerCase().includes("expired")) {
@@ -899,7 +913,7 @@ function App() {
       return;
     }
 
-    if (jobCompletedAt !== null && downloadSecondsLeft === null) {
+    if (downloadExpired) {
       setErrorPopup("This job has expired. Please re-upload your files and try again.");
       return;
     }
