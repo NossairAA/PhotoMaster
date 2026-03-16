@@ -1297,7 +1297,7 @@ function App() {
                   <button
                     type="button"
                     onClick={handleUploadButtonClick}
-                    disabled={uploadStatus === "uploading" || !authToken}
+                    disabled={uploadStatus === "uploading" || !authToken || downloadSecondsLeft !== null}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-base font-semibold text-white disabled:opacity-70"
                   >
                     {uploadStatus === "uploading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -1500,7 +1500,7 @@ function App() {
                   <button
                     type="button"
                     onClick={runJob}
-                    disabled={!canRunJob || !authToken}
+                    disabled={!canRunJob || !authToken || downloadSecondsLeft !== null}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-base font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300"
                   >
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
@@ -1524,7 +1524,7 @@ function App() {
                 <button
                   type="button"
                   onClick={downloadResult}
-                  disabled={!jobId || isSubmitting || jobProgress < 100 || !authToken}
+                  disabled={!jobId || isSubmitting || jobProgress < 100 || !authToken || downloadExpired}
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <ArrowRight className="h-4 w-4" />
