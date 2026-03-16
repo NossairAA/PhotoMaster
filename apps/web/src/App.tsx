@@ -1323,7 +1323,7 @@ function App() {
                   <button
                     type="button"
                     onClick={handleUploadButtonClick}
-                    disabled={uploadStatus === "uploading" || !authToken || downloadSecondsLeft !== null}
+                    disabled={uploadStatus === "uploading" || !authToken}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-base font-semibold text-white disabled:opacity-70"
                   >
                     {uploadStatus === "uploading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
