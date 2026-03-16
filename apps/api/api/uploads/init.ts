@@ -41,6 +41,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
         await createUploadRecord({
           id,
+          uid: auth.user.uid,
           name: file.name,
           size: file.size,
           type: file.type,

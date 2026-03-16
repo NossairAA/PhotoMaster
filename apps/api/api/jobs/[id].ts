@@ -41,6 +41,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (!job) {
       return sendJson(res, 404, { error: "Job not found." });
     }
+    if (job.uid !== auth.user.uid) {
+      return sendJson(res, 403, { error: "Job does not belong to the authenticated user." });
+    }
 
     return sendJson(res, 200, {
       id: job.id,
@@ -54,6 +57,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
 
   if (req.method === "DELETE") {
+    const job = await getJobRecord(id);
+    if (job && job.uid !== auth.user.uid) {
+      return sendJson(res, 403, { error: "Job does not belong to the authenticated user." });
+    }
     await deleteJobRecord(id);
     await deleteUploadsForJob(id);
     return sendJson(res, 200, { ok: true });

@@ -17,7 +17,8 @@ service cloud.firestore {
 
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.username == username;
+        && request.resource.data.username == username
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'createdAt']);
 
       allow delete: if request.auth != null
         && resource.data.uid == request.auth.uid;
@@ -25,7 +26,8 @@ service cloud.firestore {
       allow update: if request.auth != null
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.username == username;
+        && request.resource.data.username == username
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'createdAt']);
 
       allow list: if false;
     }

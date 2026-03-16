@@ -11,12 +11,14 @@ function key(id: string) {
 
 export async function createJobRecord(input: {
   id: string;
+  uid: string;
   requestedFields: string[];
   fileIds: string[];
   message?: string;
 }) {
   const record: JobRecord = {
     id: input.id,
+    uid: input.uid,
     createdAt: new Date().toISOString(),
     expiresAt: expiresIso(30),
     status: "queued",

@@ -22,6 +22,7 @@ import {
   doc,
   getDoc,
   getFirestore,
+  runTransaction,
   serverTimestamp,
   setDoc,
   type Firestore,
@@ -54,12 +55,6 @@ export type UserProfile = {
   name: string;
   username: string;
   email: string;
-};
-
-type UsernameIndex = {
-  uid: string;
-  username: string;
-  email?: string;
 };
 
 function getAuthClient() {
@@ -121,42 +116,6 @@ export async function signInWithGoogle() {
   await signInWithPopup(client, googleProvider);
 }
 
-function looksLikeEmail(value: string) {
-  return /.+@.+\..+/.test(value.trim());
-}
-
-async function resolveEmailFromIdentifier(identifier: string) {
-  const trimmed = identifier.trim();
-  if (!trimmed) {
-    throw new Error("auth/missing-identifier");
-  }
-
-  if (looksLikeEmail(trimmed)) {
-    return trimmed;
-  }
-
-  const db = assertFirestoreClient();
-  const usernameRef = doc(db, "usernames", normalizeUsername(trimmed));
-  const usernameSnapshot = await getDoc(usernameRef);
-
-  if (!usernameSnapshot.exists()) {
-    throw new Error("auth/username-not-found");
-  }
-
-  const index = usernameSnapshot.data() as UsernameIndex;
-  if (!index.email?.trim()) {
-    throw new Error("auth/username-email-missing");
-  }
-
-  return index.email.trim();
-}
-
-export async function signInWithIdentifier(identifier: string, password: string) {
-  const client = assertAuthClient();
-  const email = await resolveEmailFromIdentifier(identifier);
-  await signInWithEmailAndPassword(client, email, password);
-}
-
 export async function signInWithEmail(email: string, password: string) {
   const client = assertAuthClient();
   await signInWithEmailAndPassword(client, email, password);
@@ -197,24 +156,25 @@ export async function signUpWithEmailProfile(params: {
       await updateProfile(credentials.user, { displayName: trimmedName });
     }
 
-    await setDoc(profileDocRef, {
-      uid: credentials.user.uid,
-      name: trimmedName,
-      username: normalizedUsername,
-      email: params.email.trim(),
-      createdAt: serverTimestamp(),
-    });
+    await runTransaction(db, async (transaction) => {
+      const usernameSnapshot = await transaction.get(usernameDocRef);
+      if (usernameSnapshot.exists()) {
+        throw new Error("auth/username-reserved");
+      }
 
-    const usernameSnapshot = await getDoc(usernameDocRef);
-    if (usernameSnapshot.exists()) {
-      throw new Error("auth/username-reserved");
-    }
+      transaction.set(profileDocRef, {
+        uid: credentials.user.uid,
+        name: trimmedName,
+        username: normalizedUsername,
+        email: params.email.trim(),
+        createdAt: serverTimestamp(),
+      });
 
-    await setDoc(usernameDocRef, {
-      uid: credentials.user.uid,
-      username: normalizedUsername,
-      email: params.email.trim(),
-      createdAt: serverTimestamp(),
+      transaction.set(usernameDocRef, {
+        uid: credentials.user.uid,
+        username: normalizedUsername,
+        createdAt: serverTimestamp(),
+      });
     });
     usernameCreated = true;
   } catch (error) {
@@ -290,24 +250,25 @@ export async function signUpWithGoogleProfile(params: {
       await updateProfile(credentials.user, { displayName: trimmedName });
     }
 
-    await setDoc(profileDocRef, {
-      uid: credentials.user.uid,
-      name: trimmedName,
-      username: normalizedUsername,
-      email,
-      createdAt: serverTimestamp(),
-    });
+    await runTransaction(db, async (transaction) => {
+      const usernameSnapshot = await transaction.get(usernameDocRef);
+      if (usernameSnapshot.exists()) {
+        throw new Error("auth/username-reserved");
+      }
 
-    const usernameSnapshot = await getDoc(usernameDocRef);
-    if (usernameSnapshot.exists()) {
-      throw new Error("auth/username-reserved");
-    }
+      transaction.set(profileDocRef, {
+        uid: credentials.user.uid,
+        name: trimmedName,
+        username: normalizedUsername,
+        email,
+        createdAt: serverTimestamp(),
+      });
 
-    await setDoc(usernameDocRef, {
-      uid: credentials.user.uid,
-      username: normalizedUsername,
-      email,
-      createdAt: serverTimestamp(),
+      transaction.set(usernameDocRef, {
+        uid: credentials.user.uid,
+        username: normalizedUsername,
+        createdAt: serverTimestamp(),
+      });
     });
     usernameCreated = true;
   } catch (error) {
@@ -338,7 +299,7 @@ export async function isUsernameAvailable(username: string) {
     return !snapshot.exists();
   } catch (error) {
     if (error instanceof Error && /insufficient permissions/i.test(error.message)) {
-      throw new Error("Username check requires Firestore username rules. Allow get on usernames/{username} for signed-in users.");
+      throw new Error("Username check requires Firestore username rules. Allow get on usernames/{username}.");
     }
     throw error;
   }
@@ -346,19 +307,17 @@ export async function isUsernameAvailable(username: string) {
 
 export async function syncUsernameIndexForUser(params: {
   uid: string;
-  email: string;
   username: string;
 }) {
   const db = assertFirestoreClient();
   const normalizedUsername = normalizeUsername(params.username);
-  if (!normalizedUsername || !params.email.trim()) return;
+  if (!normalizedUsername) return;
 
   await setDoc(
     doc(db, "usernames", normalizedUsername),
     {
       uid: params.uid,
       username: normalizedUsername,
-      email: params.email.trim(),
       createdAt: serverTimestamp(),
     },
     { merge: true },

@@ -40,6 +40,7 @@ async function waitForApi(maxAttempts = 60) {
 async function main() {
   const apiEnv = {
     ...process.env,
+    NODE_ENV: "test",
     PORT: API_PORT,
     AUTH_TEST_BYPASS_TOKEN: process.env.AUTH_TEST_BYPASS_TOKEN ?? "test-token",
   };
@@ -70,6 +71,7 @@ async function main() {
     await run(["run", "test:api"]);
     await run(["run", "test:e2e"], {
       ...process.env,
+      NODE_ENV: "test",
       API_BASE_URL: `http://localhost:${API_PORT}`,
       AUTH_TEST_BYPASS_TOKEN: process.env.AUTH_TEST_BYPASS_TOKEN ?? "test-token",
     });

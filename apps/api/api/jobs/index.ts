@@ -28,6 +28,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (uploaded.some((file) => !file)) {
       return sendJson(res, 400, { error: "One or more files are not initialized." });
     }
+    if (uploaded.some((file) => file?.uid !== auth.user.uid)) {
+      return sendJson(res, 403, { error: "One or more files do not belong to the authenticated user." });
+    }
     if (uploaded.some((file) => !file?.uploaded)) {
       return sendJson(res, 409, { error: "All files must be uploaded and confirmed before job creation." });
     }
@@ -37,6 +40,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     await createJobRecord({
       id: jobId,
+      uid: auth.user.uid,
       requestedFields,
       fileIds: parsed.data.fileIds,
       message: "Job queued. Processing will start shortly.",

@@ -26,7 +26,7 @@ import {
   getUserProfile,
   getCurrentUserIdToken,
   observeAuthState,
-  signInWithIdentifier,
+  signInWithEmail,
   signInWithGoogle,
   signOutCurrentUser,
   signUpWithGoogleProfile,
@@ -60,7 +60,7 @@ type UploadInitFile = {
 };
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
-const DEFAULT_BEARER_TOKEN = import.meta.env.VITE_AUTH_BEARER_TOKEN ?? "";
+const DEFAULT_BEARER_TOKEN = import.meta.env.DEV ? (import.meta.env.VITE_AUTH_BEARER_TOKEN ?? "") : "";
 
 function getSupportedFormat(fileName: string) {
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
@@ -125,7 +125,7 @@ function App() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup" | "account">("signin");
-  const [signInIdentifier, setSignInIdentifier] = useState("");
+  const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
   const [signUpUsername, setSignUpUsername] = useState("");
@@ -147,6 +147,9 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("Choose files and prepare metadata fields.");
   const [jobProgress, setJobProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [errorPopup, setErrorPopup] = useState<string | null>(null);
+  const [jobCompletedAt, setJobCompletedAt] = useState<number | null>(null);
+  const [downloadSecondsLeft, setDownloadSecondsLeft] = useState<number | null>(null);
 
   const [dateMode, setDateMode] = useState<DateMode>("keep-original");
   const [customDateTime, setCustomDateTime] = useState("");
@@ -162,6 +165,19 @@ function App() {
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([35.6762, 139.6503]);
   const [mapPinnedPoint, setMapPinnedPoint] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (jobCompletedAt === null) return;
+    const RETENTION_MS = 2 * 60 * 1000;
+    const tick = () => {
+      const left = Math.max(0, Math.round((jobCompletedAt + RETENTION_MS - Date.now()) / 1000));
+      setDownloadSecondsLeft(left);
+      if (left === 0) setDownloadSecondsLeft(null);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [jobCompletedAt]);
 
   useEffect(() => {
     const unsubscribe = observeAuthState((user) => {
@@ -188,7 +204,6 @@ function App() {
           if (profile.username && user.email) {
             void syncUsernameIndexForUser({
               uid: user.uid,
-              email: user.email,
               username: profile.username,
             }).catch(() => {
               // background sync only
@@ -357,7 +372,7 @@ function App() {
   const showTreatmentWorkspace = shouldShowTreatmentWorkspace(isAuthenticated);
 
   function resetAuthFormState() {
-    setSignInIdentifier("");
+    setSignInEmail("");
     setSignInPassword("");
     setSignUpName("");
     setSignUpUsername("");
@@ -410,8 +425,8 @@ function App() {
   }
 
   async function handleSignIn() {
-    if (!signInIdentifier.trim() || !signInPassword) {
-      setAuthError("Enter your email or username and password.");
+    if (!signInEmail.trim() || !signInPassword) {
+      setAuthError("Enter your email and password.");
       return;
     }
 
@@ -419,7 +434,7 @@ function App() {
     setAuthError("");
 
     try {
-      await signInWithIdentifier(signInIdentifier.trim(), signInPassword);
+      await signInWithEmail(signInEmail.trim(), signInPassword);
       closeAuthModal();
       setStatusMessage("Authentication successful.");
     } catch (error) {
@@ -862,8 +877,14 @@ function App() {
       }
 
       setStatusMessage("Processing complete. Download the ZIP result below.");
+      setJobCompletedAt(Date.now());
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Job failed.");
+      const msg = error instanceof Error ? error.message : "Job failed.";
+      if (msg.toLowerCase().includes("expired")) {
+        setErrorPopup(msg);
+      } else {
+        setStatusMessage(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1471,15 +1492,22 @@ function App() {
               </div>
               <p className="text-sm text-slate-600">{statusMessage}</p>
 
-              <button
-                type="button"
-                onClick={downloadResult}
-                disabled={!jobId || isSubmitting || jobProgress < 100 || !authToken}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <ArrowRight className="h-4 w-4" />
-                Download Result ZIP
-              </button>
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={downloadResult}
+                  disabled={!jobId || isSubmitting || jobProgress < 100 || !authToken}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Download Result ZIP
+                </button>
+                {downloadSecondsLeft !== null && (
+                  <span className="text-xs text-slate-400">
+                    Available for {Math.floor(downloadSecondsLeft / 60)}:{String(downloadSecondsLeft % 60).padStart(2, "0")}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -2055,17 +2083,17 @@ function App() {
               </div>
             ) : (
               <div className="space-y-3">
-                <label htmlFor="signin-identifier" className="mb-1.5 block text-xs font-semibold text-slate-600">
-                  Email or username
+                <label htmlFor="signin-email" className="mb-1.5 block text-xs font-semibold text-slate-600">
+                  Email
                 </label>
                 <input
-                  id="signin-identifier"
-                  type="text"
-                  value={signInIdentifier}
-                  onChange={(event) => setSignInIdentifier(event.target.value)}
-                  placeholder="Email or username"
-                  name="signin-identifier"
-                  autoComplete="section-signin username"
+                  id="signin-email"
+                  type="email"
+                  value={signInEmail}
+                  onChange={(event) => setSignInEmail(event.target.value)}
+                  placeholder="Email"
+                  name="signin-email"
+                  autoComplete="section-signin email"
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                 />
                 <label htmlFor="signin-password" className="mb-1.5 block text-xs font-semibold text-slate-600">
@@ -2143,6 +2171,26 @@ function App() {
           <p className="text-xs font-medium uppercase tracking-widest text-slate-500/80">© 2024 PhotoMaster.</p>
         </div>
       </footer>
+
+      {errorPopup !== null && (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/50 p-4">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-2xl border border-red-100 bg-white p-6 shadow-2xl"
+          >
+            <h3 className="mb-2 text-base font-bold text-slate-900">Upload expired</h3>
+            <p className="mb-5 text-sm text-slate-600">{errorPopup}</p>
+            <button
+              type="button"
+              onClick={() => setErrorPopup(null)}
+              className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Re-upload and retry
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

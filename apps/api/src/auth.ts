@@ -8,6 +8,10 @@ export type AuthUser = {
   email?: string;
 };
 
+function isTestEnvironment() {
+  return process.env.NODE_ENV === "test";
+}
+
 export function extractBearerToken(headerValue?: string) {
   if (!headerValue) return null;
   const [scheme, token] = headerValue.split(" ");
@@ -103,7 +107,7 @@ export async function verifyRequestAuth(headerValue?: string) {
   }
 
   const bypassToken = process.env.AUTH_TEST_BYPASS_TOKEN;
-  if (bypassToken && token === bypassToken) {
+  if (bypassToken && isTestEnvironment() && token === bypassToken) {
     return {
       ok: true as const,
       user: {

@@ -28,6 +28,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       if (!upload) {
         return sendJson(res, 404, { error: `Upload session not found for file: ${fileId}` });
       }
+      if (upload.uid !== auth.user.uid) {
+        return sendJson(res, 403, { error: `Upload does not belong to the authenticated user: ${fileId}` });
+      }
 
       await confirmObjectExists(upload.objectKey);
       await markUploadCompleted(fileId);

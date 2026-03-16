@@ -2,6 +2,7 @@ export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export type JobRecord = {
   id: string;
+  uid: string;
   createdAt: string;
   expiresAt: string;
   status: JobStatus;
@@ -17,6 +18,7 @@ export type JobRecord = {
 
 export type UploadRecord = {
   id: string;
+  uid: string;
   name: string;
   size: number;
   type: string;

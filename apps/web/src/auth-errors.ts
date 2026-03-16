@@ -35,16 +35,16 @@ export function mapAuthErrorMessage(error: unknown, fallback: string) {
       return "An account already exists with this email. Please sign in instead.";
     case "auth/invalid-credential":
     case "auth/wrong-password":
-      return "Email/username or password is incorrect.";
+      return "Email or password is incorrect.";
     case "auth/user-not-found":
     case "auth/username-not-found":
-      return "We could not find an account with that login.";
+      return "We could not find an account with that email.";
     case "auth/username-email-missing":
-      return "Please sign in with your email first, then you can use your username next time.";
+      return "This account needs to be recovered through email sign-in.";
     case "auth/username-reserved":
       return "This username is unavailable. Please choose another one.";
     case "auth/missing-identifier":
-      return "Enter your email or username to continue.";
+      return "Enter your email to continue.";
     case "auth/google-email-missing":
       return "Google did not provide an email for this account. Please use email sign-up.";
     case "auth/google-email-mismatch":

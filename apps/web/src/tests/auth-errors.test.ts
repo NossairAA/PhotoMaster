@@ -7,9 +7,9 @@ describe("mapAuthErrorMessage", () => {
     expect(message).toBe("This email is already registered. Try signing in instead.");
   });
 
-  it("maps username-not-found to user-friendly message", () => {
+  it("maps username-not-found to email-first guidance", () => {
     const message = mapAuthErrorMessage(new Error("auth/username-not-found"), "Fallback");
-    expect(message).toBe("We could not find an account with that login.");
+    expect(message).toBe("We could not find an account with that email.");
   });
 
   it("maps username reserved to user-friendly message", () => {

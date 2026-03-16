@@ -3,6 +3,7 @@ import path from "node:path";
 
 const API_BASE = process.env.API_BASE_URL ?? "http://localhost:4000";
 const AUTH_TOKEN = process.env.AUTH_TEST_BYPASS_TOKEN ?? "test-token";
+process.env.NODE_ENV = process.env.NODE_ENV ?? "test";
 const authHeaders = { Authorization: `Bearer ${AUTH_TOKEN}` };
 
 function sleep(ms: number) {

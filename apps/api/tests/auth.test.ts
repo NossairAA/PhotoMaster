@@ -16,13 +16,32 @@ describe("auth helpers", () => {
   });
 
   it("accepts bypass auth token when configured", async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
     process.env.AUTH_TEST_BYPASS_TOKEN = "test-token";
+    process.env.NODE_ENV = "test";
     const result = await verifyRequestAuth("Bearer test-token");
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.user.uid).toBe("test-user");
     }
     delete process.env.AUTH_TEST_BYPASS_TOKEN;
+    process.env.NODE_ENV = previousNodeEnv;
+  });
+
+  it("ignores bypass token outside test environments", async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.AUTH_TEST_BYPASS_TOKEN = "test-token";
+    process.env.NODE_ENV = "production";
+
+    const result = await verifyRequestAuth("Bearer test-token");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("Invalid auth token.");
+    }
+
+    delete process.env.AUTH_TEST_BYPASS_TOKEN;
+    process.env.NODE_ENV = previousNodeEnv;
   });
 
   it("resolves service account path from repository root", () => {
