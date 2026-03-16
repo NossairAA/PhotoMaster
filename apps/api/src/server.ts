@@ -882,16 +882,13 @@ app.get("/api/jobs/:id/download", async (request, reply) => {
     return reply.status(409).send({ error: "Job is not ready for download yet." });
   }
 
-  if (job.downloadedAt) {
-    return reply.status(410).send({ error: "Download has already been claimed and cleaned up." });
-  }
-
   if (!job.resultObjectKey || !job.resultFileName) {
     return reply.status(409).send({ error: "No downloadable artifact is available for this job." });
   }
 
-  job.downloadedAt = nowIso();
-  job.message = "Download claimed. Cleaning storage artifacts.";
+  if (!job.downloadedAt) {
+    job.downloadedAt = nowIso();
+  }
 
   const { r2Client: client, r2Bucket: bucket } = assertR2Configured();
   const resultResponse = await client.send(
@@ -902,19 +899,10 @@ app.get("/api/jobs/:id/download", async (request, reply) => {
   );
 
   if (!resultResponse.Body) {
-    await purgeJob(id);
     return reply.status(410).send({ error: "Result artifact has already been removed." });
   }
 
   const stream = resultResponse.Body as Readable;
-
-  stream.on("close", () => {
-    void purgeJob(id);
-  });
-
-  stream.on("error", () => {
-    void purgeJob(id);
-  });
 
   reply.header("Content-Type", "application/zip");
   reply.header("Content-Disposition", `attachment; filename="${job.resultFileName}"`);

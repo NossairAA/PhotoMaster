@@ -940,7 +940,7 @@ function App() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      setStatusMessage("Download complete. Job artifacts are now cleaned on server.");
+      setStatusMessage("Download complete. You can re-download until the countdown expires.");
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Download failed.";
       if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("expired")) {
