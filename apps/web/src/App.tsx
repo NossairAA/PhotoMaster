@@ -32,6 +32,8 @@ import {
   signUpWithGoogleProfile,
   signUpWithEmailProfile,
   syncUsernameIndexForUser,
+  SESSION_IDLE_TIMEOUT_MS,
+  SESSION_WARNING_MS,
 } from "./firebase";
 import { normalizeUsername, validateUsername } from "./auth-profile";
 import { getPasswordRuleStatuses, isStrongPassword } from "./password-rules";
@@ -151,6 +153,8 @@ function App() {
   const [jobExpiresAt, setJobExpiresAt] = useState<number | null>(null);
   const [downloadSecondsLeft, setDownloadSecondsLeft] = useState<number | null>(null);
   const [downloadExpired, setDownloadExpired] = useState(false);
+  const [sessionWarningSecondsLeft, setSessionWarningSecondsLeft] = useState<number | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
 
   const [dateMode, setDateMode] = useState<DateMode>("keep-original");
   const [customDateTime, setCustomDateTime] = useState("");
@@ -234,6 +238,48 @@ function App() {
 
     return unsubscribe;
   }, []);
+
+  // Idle-session expiration: track activity and auto sign-out after SESSION_IDLE_TIMEOUT_MS.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setSessionWarningSecondsLeft(null);
+      return;
+    }
+
+    const resetActivity = () => {
+      lastActivityRef.current = Date.now();
+      setSessionWarningSecondsLeft(null);
+    };
+
+    const activityEvents = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
+    for (const event of activityEvents) {
+      window.addEventListener(event, resetActivity, { passive: true });
+    }
+
+    const intervalId = setInterval(() => {
+      const idleMs = Date.now() - lastActivityRef.current;
+      const remainingMs = SESSION_IDLE_TIMEOUT_MS - idleMs;
+
+      if (remainingMs <= 0) {
+        setSessionWarningSecondsLeft(null);
+        void signOutCurrentUser().catch(() => {});
+        return;
+      }
+
+      if (remainingMs <= SESSION_WARNING_MS) {
+        setSessionWarningSecondsLeft(Math.ceil(remainingMs / 1000));
+      } else {
+        setSessionWarningSecondsLeft(null);
+      }
+    }, 1000);
+
+    return () => {
+      for (const event of activityEvents) {
+        window.removeEventListener(event, resetActivity);
+      }
+      clearInterval(intervalId);
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const onBeforeUnload = () => {
@@ -994,6 +1040,27 @@ function App() {
 
   return (
     <div className="bg-frosted-aurora min-h-screen font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
+      {sessionWarningSecondsLeft !== null && (
+        <div
+          role="alert"
+          className="sticky top-0 z-[60] flex items-center justify-between gap-4 bg-amber-50 px-5 py-3 text-sm text-amber-900 border-b border-amber-200 shadow-sm"
+        >
+          <span>
+            ⏱ You will be signed out in{" "}
+            <strong>{sessionWarningSecondsLeft}s</strong> due to inactivity.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              lastActivityRef.current = Date.now();
+              setSessionWarningSecondsLeft(null);
+            }}
+            className="shrink-0 rounded-lg bg-amber-200 px-3 py-1 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-300"
+          >
+            Stay signed in
+          </button>
+        </div>
+      )}
       <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200/90 bg-white/85 px-6 py-4 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <div className="rounded-lg bg-blue-600 p-2 shadow-sm">

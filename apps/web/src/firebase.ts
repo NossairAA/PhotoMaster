@@ -47,6 +47,19 @@ const hasFirebaseConfig =
   Boolean(firebaseConfig.projectId) &&
   Boolean(firebaseConfig.appId);
 
+/**
+ * How long the user can be idle before they are automatically signed out.
+ * Defaults to 1 hour. Override with VITE_SESSION_IDLE_TIMEOUT_MS in .env.
+ */
+export const SESSION_IDLE_TIMEOUT_MS =
+  Number(import.meta.env.VITE_SESSION_IDLE_TIMEOUT_MS) || 60 * 60 * 1000;
+
+/**
+ * How early (before the idle timeout) to show the "about to be signed out" warning.
+ * Defaults to 2 minutes.
+ */
+export const SESSION_WARNING_MS = Math.min(2 * 60 * 1000, SESSION_IDLE_TIMEOUT_MS);
+
 let authClient: Auth | null = null;
 let firestoreClient: Firestore | null = null;
 
